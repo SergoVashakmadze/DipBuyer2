@@ -11,7 +11,7 @@ import { Line, LineChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer } fro
 import { useSettings } from "@/context/settings-context"
 
 export function AutoInvestStrategy() {
-  const { settings, updateSettings } = useSettings()
+  const { settings, updateSettings, resetSettings } = useSettings()
   const [amount, setAmount] = useState(settings?.autoInvestAmount?.toString() || "10000")
   const [frequency, setFrequency] = useState(settings?.autoInvestFrequency || "hourly")
   const [onlyUndervalued, setOnlyUndervalued] = useState(settings?.autoInvestOnlyUndervalued ?? true)
@@ -20,6 +20,7 @@ export function AutoInvestStrategy() {
   const [maxRiskLevel, setMaxRiskLevel] = useState<'low' | 'medium' | 'high'>(settings?.autoInvestMaxRiskLevel || "medium")
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [resetting, setResetting] = useState(false)
 
   // Calculate monthly investment based on frequency
   const getMonthlyInvestment = () => {
@@ -85,6 +86,22 @@ export function AutoInvestStrategy() {
     return true
   }
 
+  // Add a handleReset function
+  const handleReset = () => {
+    setResetting(true)
+    // Reset global settings, but set autoInvestAmount to 0
+    resetSettings()
+    updateSettings({ autoInvestAmount: 0 })
+    // Reset local state to default values, but amount to "0"
+    setAmount("0")
+    setFrequency("hourly")
+    setOnlyUndervalued(true)
+    setMinConfidenceEnabled(true)
+    setMinConfidence(80)
+    setMaxRiskLevel("medium")
+    setTimeout(() => setResetting(false), 1000)
+  }
+
   return (
     <TooltipProvider>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -103,6 +120,7 @@ export function AutoInvestStrategy() {
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   className="pl-8"
+                  placeholder="Enter amount"
                 />
               </div>
             </div>
@@ -178,10 +196,13 @@ export function AutoInvestStrategy() {
                 </div>
               </div>
             </div>
-            {/* Save Button */}
+            {/* Save and Reset Buttons */}
             <div className="flex gap-2">
               <Button onClick={handleSave} disabled={saving} className="w-full">
                 {saving ? <span className="animate-pulse">Saving...</span> : saved ? "Saved!" : "Save"}
+              </Button>
+              <Button onClick={handleReset} disabled={resetting} variant="outline" className="w-full">
+                {resetting ? <span className="animate-pulse">Resetting...</span> : "Reset"}
               </Button>
             </div>
           </div>

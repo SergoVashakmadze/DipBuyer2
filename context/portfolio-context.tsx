@@ -1,8 +1,6 @@
 "use client"
 
-import type React from "react"
-
-import { createContext, useContext, useState, useEffect } from "react"
+import React, { createContext, useContext, useState, useEffect, useRef } from "react"
 import { useWallet } from "./wallet-context"
 
 export interface Asset {
@@ -17,6 +15,7 @@ export interface Asset {
   costBasis: number
   profitLoss: number
   profitLossPercentage: number
+  lastTransactionAt: string // ISO date string
 }
 
 interface PortfolioHistoryEntry {
@@ -43,17 +42,24 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
   const [totalProfitLoss, setTotalProfitLoss] = useState(0)
   const [totalProfitLossPercentage, setTotalProfitLossPercentage] = useState(0)
   const [portfolioHistory, setPortfolioHistory] = useState<PortfolioHistoryEntry[]>([])
+  const [loadedAssets, setLoadedAssets] = useState(false)
+  const [hasEverLoadedAssets, setHasEverLoadedAssets] = useState(false)
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null)
 
   // Load saved portfolio data and history from localStorage
   useEffect(() => {
     const savedAssets = localStorage.getItem("dipbuyer-assets")
+    console.log('[PortfolioProvider] Loaded dipbuyer-assets from localStorage:', savedAssets)
     if (savedAssets) setAssets(JSON.parse(savedAssets))
+    setLoadedAssets(true)
+    setHasEverLoadedAssets(true)
     const savedHistory = localStorage.getItem("dipbuyer-portfolio-history")
     if (savedHistory) setPortfolioHistory(JSON.parse(savedHistory))
   }, [])
 
   // Save portfolio data to localStorage when it changes
   useEffect(() => {
+    console.log('[PortfolioProvider] Saving dipbuyer-assets to localStorage:', assets)
     localStorage.setItem("dipbuyer-assets", JSON.stringify(assets))
   }, [assets])
 
@@ -73,16 +79,26 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
     setTotalProfitLoss(profitLoss)
     setTotalProfitLossPercentage(profitLossPercentage)
 
-    // Update portfolio history (once per day or if value changes)
-    const today = new Date().toISOString().split("T")[0]
-    setPortfolioHistory((prev) => {
-      if (prev.length === 0 || prev[prev.length - 1].date !== today || prev[prev.length - 1].value !== value) {
-        // Only add if new day or value changed
-        return [...prev, { date: today, value }]
-      }
-      return prev
-    })
-  }, [assets])
+    if (!loadedAssets || !hasEverLoadedAssets) return
+
+    if (debounceTimeout.current) clearTimeout(debounceTimeout.current)
+    debounceTimeout.current = setTimeout(() => {
+      setPortfolioHistory((prev) => {
+        // Only record a $0 value if the last entry was not zero, the portfolio was previously nonzero, and assets are truly empty
+        if (assets.length === 0 && prev.length > 0 && prev[prev.length - 1].value !== 0) {
+          return [...prev, { date: new Date().toISOString(), value: 0 }]
+        }
+        // Never record a $0 value if assets are not empty or during initial load
+        if (assets.length === 0 || value === 0) return prev
+        // Only add if value changed
+        const now = new Date().toISOString()
+        if (prev.length === 0 || prev[prev.length - 1].value !== value) {
+          return [...prev, { date: now, value }]
+        }
+        return prev
+      })
+    }, 500)
+  }, [assets, loadedAssets, hasEverLoadedAssets])
 
   const buyAsset = (
     asset: Omit<Asset, "quantity" | "value" | "profitLoss" | "profitLossPercentage">,
@@ -104,7 +120,8 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
     // Update portfolio
     setAssets((prev) => {
       const existingAssetIndex = prev.findIndex((a) => a.id === asset.id)
-
+      console.log('[buyAsset] Previous assets:', prev)
+      console.log('[buyAsset] Buying asset:', asset, 'Quantity:', quantity)
       if (existingAssetIndex >= 0) {
         // Update existing asset
         const existingAsset = prev[existingAssetIndex]
@@ -113,6 +130,7 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
         const newValue = asset.price * newQuantity
         const newProfitLoss = newValue - newCostBasis
         const newProfitLossPercentage = (newProfitLoss / newCostBasis) * 100
+        const now = new Date().toISOString()
 
         const updatedAsset = {
           ...existingAsset,
@@ -123,13 +141,16 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
           costBasis: newCostBasis,
           profitLoss: newProfitLoss,
           profitLossPercentage: newProfitLossPercentage,
+          lastTransactionAt: now,
         }
 
         const newAssets = [...prev]
         newAssets[existingAssetIndex] = updatedAsset
+        console.log('[buyAsset] Updated existing asset:', updatedAsset)
         return newAssets
       } else {
         // Add new asset
+        const now = new Date().toISOString()
         const newAsset: Asset = {
           ...asset,
           quantity,
@@ -137,8 +158,9 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
           costBasis: asset.price * quantity,
           profitLoss: 0,
           profitLossPercentage: 0,
+          lastTransactionAt: now,
         }
-
+        console.log('[buyAsset] Adding new asset:', newAsset)
         return [...prev, newAsset]
       }
     })
@@ -178,6 +200,7 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
         const newValue = asset.price * newQuantity
         const newProfitLoss = newValue - newCostBasis
         const newProfitLossPercentage = (newProfitLoss / newCostBasis) * 100
+        const now = new Date().toISOString()
 
         const updatedAsset = {
           ...asset,
@@ -186,6 +209,7 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
           costBasis: newCostBasis,
           profitLoss: newProfitLoss,
           profitLossPercentage: newProfitLossPercentage,
+          lastTransactionAt: now,
         }
 
         const newAssets = [...prev]

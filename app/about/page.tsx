@@ -7,7 +7,7 @@ import Image from "next/image"
 import { getTradingViewChartUrl } from "@/components/asset-opportunities"
 
 export default function AboutPage() {
-  const quoteRef = useRef<HTMLDivElement | null>(null)
+  const quoteRef = useRef<HTMLQuoteElement | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
 
   useEffect(() => {
@@ -33,19 +33,19 @@ export default function AboutPage() {
 
   return (
     <DashboardShell>
-      <DashboardHeader heading="About DipBuyer" description="Learn the philosophy and mission behind DipBuyer." />
+      <DashboardHeader heading="The Rationale: Buy Low, Sell High" description="Learn the philosophy and mission behind DipBuyer." />
       <div className="prose max-w-3xl mx-auto mt-8">
         <h2 className="text-2xl font-bold text-primary mb-4">Our Mission: Financial Inclusion for All</h2>
         <p className="mb-8 text-lg">
           DipBuyer is designed for everyone. Whether you're a seasoned investor or just starting out, our tools help you identify, analyze, and invest in undervalued opportunities—no expertise required.
         </p>
-        <h3>Buy Low, Sell High: The Rationale</h3>
+        <h3>The Rationale: Buy Low, Sell High</h3>
         <p>
           The core principle of investing is simple: <b>Buy Low, Sell High</b>. DipBuyer is built around this timeless wisdom, making it accessible to everyone. "Buying the Dip" means purchasing assets when their prices have fallen, often due to temporary market overreactions, with the expectation that they will recover and grow in value.
         </p>
         <h4>What is "Buying the Dip"?</h4>
         <p>
-          "Buying the Dip" is a contrarian investment strategy that involves purchasing assets after they have experienced a decline, under the belief that the drop is temporary and the asset will rebound. This approach is supported by decades of market data and is often cited by legendary investors like Warren Buffett and Peter Lynch. As Buffett famously said, "Be fearful when others are greedy and greedy when others are fearful."
+          "Buying the Dip" is an investment strategy that involves purchasing assets after they have experienced a decline, under the belief that the drop is temporary and the asset will rebound. This approach is supported by decades of market data and is often cited by legendary investors like Warren Buffett and Peter Lynch. As Buffett famously said, "Be fearful when others are greedy and greedy when others are fearful."
         </p>
         <h4>Why Undervalued Assets Matter</h4>
         <p>

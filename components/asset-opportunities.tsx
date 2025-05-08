@@ -1184,6 +1184,7 @@ export function AssetOpportunities({ className }: AssetOpportunitiesProps) {
 
     const quantity = amountNum / selectedAsset.price
 
+    console.log('[handleConfirmBuy] Buying asset:', selectedAsset, 'Amount:', amountNum, 'Quantity:', quantity)
     buyAsset(
       {
         id: selectedAsset.id,
@@ -1196,6 +1197,10 @@ export function AssetOpportunities({ className }: AssetOpportunitiesProps) {
       },
       quantity,
     )
+    setTimeout(() => {
+      const assetsAfter = JSON.parse(localStorage.getItem('dipbuyer-assets') || '[]')
+      console.log('[handleConfirmBuy] Assets in localStorage after buy:', assetsAfter)
+    }, 500)
 
     // Track this purchase for the current period
     purchasesThisPeriod.current.push({ periodKey, amount: amountNum })

@@ -25,6 +25,7 @@ interface Settings {
 interface SettingsContextType {
   settings: Settings
   updateSettings: (newSettings: Partial<Settings>) => void
+  resetSettings: () => void
 }
 
 const defaultSettings: Settings = {
@@ -68,7 +69,13 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }))
   }
 
-  return <SettingsContext.Provider value={{ settings, updateSettings }}>{children}</SettingsContext.Provider>
+  // Add resetSettings implementation
+  const resetSettings = () => {
+    setSettings(defaultSettings)
+    localStorage.setItem("dipbuyer-settings", JSON.stringify(defaultSettings))
+  }
+
+  return <SettingsContext.Provider value={{ settings, updateSettings, resetSettings }}>{children}</SettingsContext.Provider>
 }
 
 export function useSettings() {

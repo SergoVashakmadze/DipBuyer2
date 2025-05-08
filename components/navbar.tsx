@@ -55,7 +55,7 @@ export default function Navbar() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="h-24 w-24 relative" style={{ width: 120, height: 'auto' }}>
+                <div className="h-24 w-24 relative mt-4" style={{ width: 120, height: 'auto' }}>
                   <Image
                     src="/images/bull-market-logo.png"
                     alt="DipBuyer Logo"

@@ -7,14 +7,30 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart"
 import { formatCurrency } from "@/lib/utils"
+import React from "react"
 
 export function PortfolioChart() {
-  const { totalValue, portfolioHistory } = usePortfolio()
+  const { totalValue, portfolioHistory, assets } = usePortfolio()
   const [timeRange, setTimeRange] = useState("1d")
+
+  // Filter out $0 values unless it's the last entry and the portfolio is truly empty
+  const filteredHistory = React.useMemo(() => {
+    if (portfolioHistory.length === 0) return []
+    // If the last entry is $0 and assets are empty, keep it
+    const lastEntry = portfolioHistory[portfolioHistory.length - 1]
+    return portfolioHistory.filter((entry, idx) => {
+      if (entry.value !== 0) return true
+      // Only keep $0 if it's the last entry and assets are empty
+      return idx === portfolioHistory.length - 1 && assets.length === 0
+    })
+  }, [portfolioHistory, assets])
+
+  // Debug: log raw portfolioHistory
+  console.log('[PortfolioChart] portfolioHistory:', portfolioHistory)
 
   // Use real portfolio history, always append the current value for today (in case it changed)
   const today = new Date().toISOString().split("T")[0]
-  let chartData = portfolioHistory
+  let chartData = filteredHistory
   if (chartData.length === 0 || chartData[chartData.length - 1].date !== today || chartData[chartData.length - 1].value !== totalValue) {
     chartData = [...chartData, { date: today, value: totalValue }]
   }
@@ -43,12 +59,19 @@ export function PortfolioChart() {
 
   const filteredData = getFilteredData()
 
+  // Debug: log all timestamps and values
+  console.log('[PortfolioChart] filteredData:', filteredData)
+
+  // Only show month/day on the X axis
   const formatXAxis = (date: string) => {
     const d = new Date(date)
-    if (timeRange === "1d") {
-      return `${d.getHours()}:${d.getMinutes().toString().padStart(2, "0")}`
-    }
     return `${d.getMonth() + 1}/${d.getDate()}`
+  }
+
+  // Show full date and time in the tooltip
+  const formatTooltipLabel = (date: string) => {
+    const d = new Date(date)
+    return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${d.getMinutes().toString().padStart(2, "0")}`
   }
 
   const formatYAxis = (value: number) => {
@@ -77,7 +100,7 @@ export function PortfolioChart() {
       </CardHeader>
       <CardContent>
         <ChartContainer
-          className="h-[300px]"
+          className="h-[400px]"
           config={{
             value: {
               label: "Portfolio Value",
@@ -88,9 +111,25 @@ export function PortfolioChart() {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={filteredData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" tickFormatter={formatXAxis} />
+              <XAxis 
+                dataKey="date" 
+                tickFormatter={formatXAxis} 
+                angle={-45} 
+                textAnchor="end" 
+              />
               <YAxis tickFormatter={formatYAxis} />
-              <Tooltip content={<ChartTooltipContent />} />
+              <Tooltip content={({ active, payload, label }) => {
+                if (active && payload && payload.length) {
+                  const value = payload[0].value;
+                  return (
+                    <div className="bg-white p-2 rounded shadow text-xs">
+                      <div><b>{formatTooltipLabel(label)}</b></div>
+                      <div>Value: {typeof value === 'number' ? formatCurrency(value) : '-'}</div>
+                    </div>
+                  )
+                }
+                return null
+              }} />
               <Line
                 type="monotone"
                 dataKey="value"

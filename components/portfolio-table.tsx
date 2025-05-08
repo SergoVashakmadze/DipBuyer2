@@ -19,12 +19,42 @@ export function PortfolioTable() {
   const [selectedAsset, setSelectedAsset] = useState<(typeof assets)[0] | null>(null)
   const [sellQuantity, setSellQuantity] = useState<number>(0)
   const [isSellModalOpen, setIsSellModalOpen] = useState(false)
+  const [sortBy, setSortBy] = useState<'asset' | 'price' | 'value' | 'pl' | 'lastTransaction'>('asset');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  console.log('[PortfolioTable] assets from context:', assets)
 
   const filteredAssets = assets.filter(
     (asset) =>
       asset.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      asset.name.toLowerCase().includes(searchQuery.toLowerCase()),
+      asset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (asset.lastTransactionAt && asset.lastTransactionAt.toLowerCase().includes(searchQuery.toLowerCase())),
   )
+
+  const sortedAssets = [...filteredAssets].sort((a, b) => {
+    if (sortBy === 'asset') {
+      return sortOrder === 'asc'
+        ? a.symbol.localeCompare(b.symbol)
+        : b.symbol.localeCompare(a.symbol);
+    } else if (sortBy === 'price') {
+      return sortOrder === 'asc'
+        ? a.price - b.price
+        : b.price - a.price;
+    } else if (sortBy === 'value') {
+      return sortOrder === 'asc'
+        ? a.value - b.value
+        : b.value - a.value;
+    } else if (sortBy === 'pl') {
+      return sortOrder === 'asc'
+        ? a.profitLoss - b.profitLoss
+        : b.profitLoss - a.profitLoss;
+    } else if (sortBy === 'lastTransaction') {
+      const aTime = a.lastTransactionAt ? new Date(a.lastTransactionAt).getTime() : 0;
+      const bTime = b.lastTransactionAt ? new Date(b.lastTransactionAt).getTime() : 0;
+      return sortOrder === 'asc' ? aTime - bTime : bTime - aTime;
+    }
+    return 0;
+  });
 
   const handleSell = (asset: (typeof assets)[0]) => {
     setSelectedAsset(asset)
@@ -60,7 +90,7 @@ export function PortfolioTable() {
   }
 
   return (
-    <Card>
+    <Card style={{ minWidth: 1000, width: '100%' }}>
       <CardHeader>
         <CardTitle>Your Assets</CardTitle>
         <CardDescription>Manage your portfolio holdings</CardDescription>
@@ -74,7 +104,7 @@ export function PortfolioTable() {
         </div>
       </CardHeader>
       <CardContent>
-        {filteredAssets.length === 0 ? (
+        {sortedAssets.length === 0 ? (
           <div className="flex h-[200px] items-center justify-center text-center">
             <div className="text-muted-foreground">
               <p>No assets in your portfolio</p>
@@ -82,32 +112,53 @@ export function PortfolioTable() {
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="overflow-x-auto" style={{ minWidth: 900 }}>
+            <table className="min-w-[900px] w-full">
               <thead>
                 <tr className="border-b">
                   <th className="text-left py-2">
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" onClick={() => {
+                      if (sortBy === 'asset') setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                      setSortBy('asset');
+                    }}>
                       Asset
                       <ArrowUpDown className="ml-2 h-4 w-4" />
                     </Button>
                   </th>
                   <th className="text-right py-2">
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" onClick={() => {
+                      if (sortBy === 'price') setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                      setSortBy('price');
+                    }}>
                       Price
                       <ArrowUpDown className="ml-2 h-4 w-4" />
                     </Button>
                   </th>
                   <th className="text-right py-2">Quantity</th>
                   <th className="text-right py-2">
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" onClick={() => {
+                      if (sortBy === 'value') setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                      setSortBy('value');
+                    }}>
                       Value
                       <ArrowUpDown className="ml-2 h-4 w-4" />
                     </Button>
                   </th>
                   <th className="text-right py-2">
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" onClick={() => {
+                      if (sortBy === 'pl') setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                      setSortBy('pl');
+                    }}>
                       P/L
+                      <ArrowUpDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </th>
+                  <th className="text-right py-2">
+                    <Button variant="ghost" size="sm" onClick={() => {
+                      if (sortBy === 'lastTransaction') setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                      setSortBy('lastTransaction');
+                    }}>
+                      Last Transaction
                       <ArrowUpDown className="ml-2 h-4 w-4" />
                     </Button>
                   </th>
@@ -115,7 +166,7 @@ export function PortfolioTable() {
                 </tr>
               </thead>
               <tbody>
-                {filteredAssets.map((asset) => (
+                {sortedAssets.map((asset) => (
                   <tr key={asset.id} className="border-b hover:bg-muted/50">
                     <td className="py-2">
                       <div>
@@ -129,6 +180,7 @@ export function PortfolioTable() {
                     <td className={`text-right py-2 ${asset.profitLoss >= 0 ? "text-green-500" : "text-red-500"}`}>
                       {formatCurrency(typeof asset.profitLoss === 'number' ? asset.profitLoss : 0)}
                     </td>
+                    <td className="text-right py-2">{asset.lastTransactionAt ? new Date(asset.lastTransactionAt).toLocaleString() : '-'}</td>
                     <td className="text-right py-2">
                       <Button variant="outline" size="sm" onClick={() => handleSell(asset)}>
                         Sell
